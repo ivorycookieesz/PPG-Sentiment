@@ -1,11 +1,7 @@
 import streamlit as st
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import os
 
-# =====================
-# CONFIG
-# =====================
 st.set_page_config(
     page_title="Klasifikasi Sentimen PPG",
     page_icon="🎓",
@@ -15,54 +11,36 @@ st.set_page_config(
 st.title("🎓 Klasifikasi Sentimen Kebijakan PPG")
 st.write("Masukkan opini untuk memprediksi sentimen.")
 
-MODEL_DIR = "ModelPPG"
+MODEL_NAME = "ivorybutter/indobert-ppg-sentiment"
 
-# =====================
-# LOAD MODEL
-# =====================
 @st.cache_resource
 def load_model():
-    if not os.path.exists(MODEL_DIR):
-        st.error(f"Folder '{MODEL_DIR}' tidak ditemukan!")
-        st.stop()
-
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
-    model = AutoModelForSequenceClassification.from_pretrained(MODEL_DIR)
-
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME,
+        torch_dtype=torch.float32
+    )
     model.eval()
-
     return tokenizer, model
 
 tokenizer, model = load_model()
 
-# =====================
-# LABEL SENTIMEN
-# =====================
-# UBAH SESUAI LABEL SAAT TRAINING
 label_map = {
     0: "Negatif",
     1: "Netral",
     2: "Positif"
 }
 
-# =====================
-# INPUT
-# =====================
 user_input = st.text_area(
     "Masukkan opini tentang PPG",
     height=150,
     placeholder="Contoh: Program PPG sangat membantu meningkatkan kompetensi guru."
 )
 
-# =====================
-# PREDIKSI
-# =====================
 if st.button("Prediksi Sentimen"):
-
     if user_input.strip() == "":
         st.warning("Masukkan teks terlebih dahulu.")
     else:
-
         inputs = tokenizer(
             user_input,
             return_tensors="pt",
@@ -75,20 +53,14 @@ if st.button("Prediksi Sentimen"):
             outputs = model(**inputs)
 
         pred = torch.argmax(outputs.logits, dim=1).item()
-
         label = label_map[pred]
 
         if label == "Positif":
-            st.success(f"😊 Sentimen : {label}")
-
+            st.success(f"😊 Sentimen: {label}")
         elif label == "Negatif":
-            st.error(f"😠 Sentimen : {label}")
-
+            st.error(f"😠 Sentimen: {label}")
         else:
-            st.info(f"😐 Sentimen : {label}")
+            st.info(f"😐 Sentimen: {label}")
 
-# =====================
-# FOOTER
-# =====================
 st.markdown("---")
 st.caption("Klasifikasi Sentimen PPG menggunakan IndoBERT")
